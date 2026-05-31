@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: report-backend
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8200"]
+    environment:
+      - DATABASE_URL=sqlite:///./storage/reports.db
+    volumes:
+      - ./storage:/app/backend/storage
+    ports:
+      - "8200:8200"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: report-frontend
+    environment:
+      - VITE_API_URL=/api
+    ports:
+      - "3200:3200"
+    depends_on:
+      - backend

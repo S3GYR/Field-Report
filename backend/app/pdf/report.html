@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ report.number }} – Rapport terrain</title>
+  <style>
+    body { font-family: 'DM Sans', Arial, sans-serif; margin:0; padding:32px; background:#f5f2ed; }
+    h1 { color:#2d5016; }
+    .section { margin-bottom:24px; padding:16px; background:white; border-radius:8px; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th, td { border:1px solid #d9d4cc; padding:6px; text-align:left; }
+    th { background:#2d5016; color:white; }
+    .photo { margin-bottom:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Rapport {{ report.number }}</h1>
+    <p>Client : {{ report.client }} — Site : {{ report.site }}</p>
+    <p>Date : {{ report.visit_date }} — Météo : {{ report.weather.value }}</p>
+  </header>
+
+  <section class="section">
+    <h2>Commentaires</h2>
+    <p>{{ report.comments or '—' }}</p>
+  </section>
+
+  <section class="section">
+    <h2>Photos</h2>
+    {% for photo in report.photos %}
+      <div class="photo">
+        <strong>{{ photo.filename }}</strong><br/>
+        <span>Priorité : {{ photo.priority.value }}</span><br/>
+        <span>{{ photo.comment or '—' }}</span>
+      </div>
+    {% else %}
+      <p>Aucune photo.</p>
+    {% endfor %}
+  </section>
+
+  <section class="section">
+    <h2>Tâches</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Statut</th>
+          <th>Coût estimé</th>
+          <th>Durée estimée</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for task in report.tasks %}
+        <tr>
+          <td>{{ task.description }}</td>
+          <td>{{ task.status.value }}</td>
+          <td>{{ task.estimated_cost or '—' }}</td>
+          <td>{{ task.estimated_duration or '—' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">Aucune tâche</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  {% if report.signature %}
+  <section class="section">
+    <h2>Signature</h2>
+    <p>{{ report.signature.name }} — {{ report.signature.role or '' }}</p>
+    <p>Date : {{ report.signature.signed_on or '—' }}</p>
+  </section>
+  {% endif %}
+</body>
+</html>
