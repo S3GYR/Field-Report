@@ -53,6 +53,10 @@ field-report/storage/exports/*
 # PDF legacy
 field-report/legacy/*.pdf
 
+# Node.js
+node_modules/
+frontend/node_modules/
+
 # IDE
 .vscode/
 .idea/
