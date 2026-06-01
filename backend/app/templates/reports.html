@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+{% set active = "reports" %}
+{% block title %}Rapports — Field Report{% endblock %}
+
+{% block content %}
+<div class="card-header" style="margin-bottom: 20px;">
+    <h1 class="card-title">Rapports</h1>
+    <button class="btn btn-primary" onclick="openModal('modal-report')">+ Nouveau rapport</button>
+</div>
+
+<div class="card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>N&deg;</th>
+                <th>Date visite</th>
+                <th>Client</th>
+                <th>Site</th>
+                <th>M&eacute;t&eacute;o</th>
+                <th>Statut</th>
+                <th style="width: 160px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="reports-table">
+            <tr><td colspan="7" class="empty-state">Chargement…</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal: Create report -->
+<div class="modal-overlay" id="modal-report">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Nouveau rapport</span>
+            <button class="modal-close" onclick="closeModal('modal-report')">&times;</button>
+        </div>
+        <form id="form-report">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Num&eacute;ro</label>
+                    <input class="form-input" name="number" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date de visite</label>
+                    <input class="form-input" type="date" name="visit_date" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Client</label>
+                    <input class="form-input" name="client" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Site</label>
+                    <input class="form-input" name="site" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">M&eacute;t&eacute;o</label>
+                    <select class="form-select" name="weather">
+                        <option value="sunny">Ensoleill&eacute;</option>
+                        <option value="cloudy">Nuageux</option>
+                        <option value="rainy">Pluvieux</option>
+                        <option value="windy">Venteux</option>
+                        <option value="unknown">Inconnu</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Statut</label>
+                    <select class="form-select" name="status">
+                        <option value="draft">Brouillon</option>
+                        <option value="approved">Approuv&eacute;</option>
+                        <option value="sent">Envoy&eacute;</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Commentaires</label>
+                <textarea class="form-textarea" name="comments"></textarea>
+            </div>
+            <div style="display:flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-report')">Annuler</button>
+                <button type="submit" class="btn btn-primary">Cr&eacute;er</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit report -->
+<div class="modal-overlay" id="modal-report-edit">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Modifier le rapport</span>
+            <button class="modal-close" onclick="closeModal('modal-report-edit')">&times;</button>
+        </div>
+        <form id="form-report-edit">
+            <input type="hidden" name="id">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Num&eacute;ro</label>
+                    <input class="form-input" name="number" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date de visite</label>
+                    <input class="form-input" type="date" name="visit_date" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Client</label>
+                    <input class="form-input" name="client" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Site</label>
+                    <input class="form-input" name="site" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">M&eacute;t&eacute;o</label>
+                    <select class="form-select" name="weather">
+                        <option value="sunny">Ensoleill&eacute;</option>
+                        <option value="cloudy">Nuageux</option>
+                        <option value="rainy">Pluvieux</option>
+                        <option value="windy">Venteux</option>
+                        <option value="unknown">Inconnu</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Statut</label>
+                    <select class="form-select" name="status">
+                        <option value="draft">Brouillon</option>
+                        <option value="approved">Approuv&eacute;</option>
+                        <option value="sent">Envoy&eacute;</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Commentaires</label>
+                <textarea class="form-textarea" name="comments"></textarea>
+            </div>
+            <div style="display:flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-report-edit')">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let _reports = [];
+
+async function loadReports() {
+    const tbody = document.getElementById("reports-table");
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Chargement…</td></tr>';
+    try {
+        _reports = await apiGet(API.reports + "/");
+        tbody.innerHTML = "";
+        if (_reports.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Aucun rapport</td></tr>';
+            return;
+        }
+        _reports.forEach(r => {
+            const tr = el("tr", {}, [
+                el("td", {}, [el("a", { href: "/reports/" + r.id, text: r.number, style: "color:var(--primary);font-weight:600;text-decoration:none;" })]),
+                el("td", { text: formatDate(r.visit_date) }),
+                el("td", { text: r.client }),
+                el("td", { text: r.site }),
+                el("td", { text: r.weather }),
+                el("td", {}, [el("span", { class: "badge badge-" + r.status, text: r.status })]),
+                el("td", {}, [
+                    el("button", { class: "btn btn-sm btn-secondary", text: "PDF", onclick: `generatePdf(${r.id})` }),
+                    " ",
+                    el("button", { class: "btn btn-sm btn-secondary", text: "Modifier", onclick: `editReport(${r.id})` }),
+                    " ",
+                    el("button", { class: "btn btn-sm btn-danger", text: "Supprimer", onclick: `deleteReport(${r.id})` }),
+                ]),
+            ]);
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state">Erreur: ${err.message}</td></tr>`;
+    }
+}
+
+async function generatePdf(id) {
+    try {
+        const data = await apiPost(API.reports + "/" + id + "/generate-pdf", {});
+        toast("PDF g&eacute;n&eacute;r&eacute;: " + data.pdf, "info");
+    } catch (err) {
+        toast(err.message, "error");
+    }
+}
+
+function editReport(id) {
+    const r = _reports.find(x => x.id === id);
+    if (!r) return;
+    const f = document.getElementById("form-report-edit");
+    f.id.value = r.id;
+    f.number.value = r.number;
+    f.visit_date.value = r.visit_date;
+    f.client.value = r.client;
+    f.site.value = r.site;
+    f.weather.value = r.weather;
+    f.status.value = r.status;
+    f.comments.value = r.comments || "";
+    openModal("modal-report-edit");
+}
+
+function deleteReport(id) {
+    const r = _reports.find(x => x.id === id);
+    confirmDelete(`le rapport ${r.number}`, API.reports + "/" + id, loadReports);
+}
+
+document.getElementById("form-report").addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target;
+    const payload = Object.fromEntries(new FormData(f));
+    try {
+        await apiPost(API.reports + "/", payload);
+        closeModal("modal-report");
+        f.reset();
+        toast("Rapport cr&eacute;&eacute;", "info");
+        loadReports();
+    } catch (err) { toast(err.message, "error"); }
+});
+
+document.getElementById("form-report-edit").addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target;
+    const payload = Object.fromEntries(new FormData(f));
+    delete payload.id;
+    try {
+        await apiPut(API.reports + "/" + f.id.value, payload);
+        closeModal("modal-report-edit");
+        toast("Rapport mis &agrave; jour", "info");
+        loadReports();
+    } catch (err) { toast(err.message, "error"); }
+});
+
+loadReports();
+</script>
+{% endblock %}

@@ -22,6 +22,19 @@ def create_task(report_id: int, payload: CreateTask, db: Session = Depends(get_d
     return task
 
 
+@router.get("/", response_model=list[TaskResponse])
+def list_tasks(db: Session = Depends(get_db)):
+    return db.query(Task).all()
+
+
+@router.get("/{task_id}", response_model=TaskResponse)
+def get_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.get(Task, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
 @router.put("/{task_id}", response_model=TaskResponse)
 def update_task(task_id: int, payload: UpdateTask, db: Session = Depends(get_db)):
     task = db.get(Task, task_id)

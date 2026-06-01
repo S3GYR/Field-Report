@@ -10,6 +10,19 @@ from app.schemas import CreateSignature, SignatureResponse, UpdateSignature
 router = APIRouter()
 
 
+@router.get("/", response_model=list[SignatureResponse])
+def list_signatures(db: Session = Depends(get_db)):
+    return db.query(Signature).all()
+
+
+@router.get("/{report_id}", response_model=SignatureResponse)
+def get_signature(report_id: int, db: Session = Depends(get_db)):
+    signature = db.query(Signature).filter(Signature.report_id == report_id).one_or_none()
+    if not signature:
+        raise HTTPException(status_code=404, detail="Signature not found")
+    return signature
+
+
 @router.post("/{report_id}", response_model=SignatureResponse, status_code=status.HTTP_201_CREATED)
 def create_signature(report_id: int, payload: CreateSignature, db: Session = Depends(get_db)):
     report = db.get(Report, report_id)

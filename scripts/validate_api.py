@@ -1,0 +1,8 @@
+"""Run API validation tests for FieldReport."""
+
+from __future__ import annotations
+
+import pytest
+
+if __name__ == "__main__":
+    raise SystemExit(pytest.main(["backend/tests/"]))

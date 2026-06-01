@@ -22,7 +22,7 @@ Application destinée aux équipes de terrain (BTP, maintenance, inspection) pou
 - Gestion des tâches, signatures, commentaires, météo, coordonnées.
 - Génération PDF via Jinja2 + WeasyPrint (`backend/app/pdf/report.html`).
 - Frontend React/Vite/TypeScript (PWA-ready) consommant l’API.
-- Script historique `generer_pdf.py` pour générer un PDF depuis un JSON/HTML legacy.
+- Script historique `field-report/legacy/generer_pdf.py` pour générer un PDF depuis un JSON/HTML legacy.
 
 ## 2. Fonctionnement général
 
@@ -52,7 +52,7 @@ Application destinée aux équipes de terrain (BTP, maintenance, inspection) pou
 6. **Génération du PDF**  
    - Endpoint `POST /api/reports/{id}/generate-pdf` → `ReportPdfService`.  
    - Rendu du template `backend/app/pdf/report.html` puis génération via WeasyPrint dans `storage/exports/report-<number>.pdf`.  
-   - Le script legacy `generer_pdf.py` (ReportLab) lit un JSON local.
+   - Le script legacy `field-report/legacy/generer_pdf.py` (ReportLab) lit un JSON local.
 
 7. **Exports**  
    - PDF via l’endpoint ci-dessus.  
@@ -72,7 +72,7 @@ PhotoStorage & PDF Service
    ↓
 Fichiers storage/photos & storage/exports
 
-Legacy HTML ─► localStorage/sessionStorage ─► generer_pdf.py ─► rapport.pdf
+Legacy HTML ─► localStorage/sessionStorage ─► `field-report/legacy/generer_pdf.py` ─► rapport.pdf
 ```
 
 ## 3. Architecture du projet
@@ -102,7 +102,9 @@ Rapport/
 ├── storage/ (photos + exports, créé au runtime)
 ├── docker-compose.yml
 ├── template_sans_images.html
-├── generer_pdf.py
+├── field-report/
+│   └── legacy/
+│       └── generer_pdf.py
 └── README_NEW_UTF8.md
 ```
 

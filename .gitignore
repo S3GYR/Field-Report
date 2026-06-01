@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Environnements virtuels
+.venv/
+venv/
+env/
+
+# Tests et couverture
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+debug_pdf.log
+
+# Bases de données locales
+*.db
+
+# Archives
+legacy-backup.zip
+*.zip
+*.tar.gz
+
+# Storage (contenu généré)
+storage/photos/*
+storage/exports/*
+!storage/photos/.gitkeep
+!storage/exports/.gitkeep
+
+backend/storage/photos/*
+backend/storage/exports/*
+!backend/storage/photos/.gitkeep
+!backend/storage/exports/.gitkeep
+
+# Fichiers temporaires
+staged*.txt
+backend/debug_pdf2.py
+
+# Storage legacy
+field-report/storage/photos/*
+field-report/storage/exports/*
+!field-report/storage/photos/.gitkeep
+!field-report/storage/exports/.gitkeep
+
+# PDF legacy
+field-report/legacy/*.pdf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

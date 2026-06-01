@@ -1,0 +1,312 @@
+{% extends "layout.html" %}
+{% set active = "reports" %}
+{% block title %}D&eacute;tail du rapport — Field Report{% endblock %}
+
+{% block content %}
+<div id="report-header" style="margin-bottom: 20px;">
+    <a href="/reports" style="color: var(--muted); font-size: 0.85rem;">&larr; Retour aux rapports</a>
+    <h1 id="report-title" style="margin-top: 8px; font-size: 1.4rem; font-weight: 700;">Chargement…</h1>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Informations</span>
+            <button class="btn btn-sm btn-secondary" onclick="editReportInfo()">Modifier</button>
+        </div>
+        <div id="report-info"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Signature</span>
+            <button class="btn btn-sm btn-primary" onclick="openModal('modal-signature')">Ajouter / Modifier</button>
+        </div>
+        <div id="report-signature">
+            <div class="empty-state">Aucune signature</div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <span class="card-title">Photos</span>
+        <button class="btn btn-sm btn-primary" onclick="openModal('modal-photo')">+ Ajouter une photo</button>
+    </div>
+    <div id="report-photos" class="photo-grid">
+        <div class="empty-state">Aucune photo</div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <span class="card-title">T&acirc;ches</span>
+        <button class="btn btn-sm btn-primary" onclick="openModal('modal-task')">+ Ajouter une t&acirc;che</button>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr><th>Description</th><th>Statut</th><th>Co&ucirc;t estim&eacute;</th><th>Dur&eacute;e estim&eacute;e</th><th style="width: 100px;">Actions</th></tr>
+        </thead>
+        <tbody id="report-tasks">
+            <tr><td colspan="5" class="empty-state">Aucune t&acirc;che</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div style="display:flex; gap: 10px; margin-top: 20px;">
+    <button class="btn btn-primary" onclick="generatePdf()">G&eacute;n&eacute;rer le PDF</button>
+    <button class="btn btn-danger" onclick="deleteReport()">Supprimer le rapport</button>
+</div>
+
+<!-- Modal: Photo upload -->
+<div class="modal-overlay" id="modal-photo">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Ajouter une photo</span>
+            <button class="modal-close" onclick="closeModal('modal-photo')">&times;</button>
+        </div>
+        <form id="form-photo">
+            <div class="form-group">
+                <label class="form-label">Fichier image</label>
+                <input class="form-input" type="file" name="file" accept="image/*" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Commentaire</label>
+                <input class="form-input" name="comment">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Priorit&eacute;</label>
+                <select class="form-select" name="priority">
+                    <option value="none">Aucune</option>
+                    <option value="low">Basse</option>
+                    <option value="medium">Moyenne</option>
+                    <option value="high">Haute</option>
+                </select>
+            </div>
+            <div style="display:flex; gap: 8px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-photo')">Annuler</button>
+                <button type="submit" class="btn btn-primary">Uploader</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Task -->
+<div class="modal-overlay" id="modal-task">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Nouvelle t&acirc;che</span>
+            <button class="modal-close" onclick="closeModal('modal-task')">&times;</button>
+        </div>
+        <form id="form-task">
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <input class="form-input" name="description" required>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Co&ucirc;t estim&eacute; (&euro;)</label>
+                    <input class="form-input" type="number" step="0.01" name="estimated_cost">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Dur&eacute;e estim&eacute;e (h)</label>
+                    <input class="form-input" type="number" step="0.1" name="estimated_duration">
+                </div>
+            </div>
+            <div style="display:flex; gap: 8px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-task')">Annuler</button>
+                <button type="submit" class="btn btn-primary">Cr&eacute;er</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Signature -->
+<div class="modal-overlay" id="modal-signature">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Signature</span>
+            <button class="modal-close" onclick="closeModal('modal-signature')">&times;</button>
+        </div>
+        <form id="form-signature">
+            <div class="form-group">
+                <label class="form-label">Nom</label>
+                <input class="form-input" name="name" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">R&ocirc;le</label>
+                <input class="form-input" name="role">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date de signature</label>
+                <input class="form-input" type="date" name="signed_on">
+            </div>
+            <div style="display:flex; gap: 8px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-signature')">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const REPORT_ID = Number(location.pathname.split("/").pop());
+let _report = null;
+
+async function loadReport() {
+    try {
+        _report = await apiGet(API.reports + "/" + REPORT_ID);
+        document.getElementById("report-title").textContent = _report.number + " — " + _report.client;
+
+        const info = document.getElementById("report-info");
+        info.innerHTML = `
+            <p><strong>Site :</strong> ${_report.site}</p>
+            <p><strong>Date visite :</strong> ${formatDate(_report.visit_date)}</p>
+            <p><strong>M&eacute;t&eacute;o :</strong> ${_report.weather}</p>
+            <p><strong>Statut :</strong> <span class="badge badge-${_report.status}">${_report.status}</span></p>
+            <p><strong>Commentaires :</strong></p>
+            <p style="white-space:pre-wrap;">${_report.comments || "—"}</p>
+        `;
+
+        const sig = document.getElementById("report-signature");
+        if (_report.signature) {
+            sig.innerHTML = `
+                <p><strong>Nom :</strong> ${_report.signature.name}</p>
+                <p><strong>R&ocirc;le :</strong> ${_report.signature.role || "—"}</p>
+                <p><strong>Date :</strong> ${formatDate(_report.signature.signed_on)}</p>
+            `;
+        } else {
+            sig.innerHTML = '<div class="empty-state">Aucune signature</div>';
+        }
+
+        const photos = document.getElementById("report-photos");
+        if (_report.photos && _report.photos.length) {
+            photos.innerHTML = "";
+            _report.photos.forEach(p => {
+                const item = el("div", { class: "photo-item" }, [
+                    el("img", { src: "/storage/" + (p.thumbnail_path || p.filepath) }),
+                    el("div", { class: "photo-meta" }, [
+                        el("div", { text: p.comment || p.filename }),
+                        el("div", {}, [
+                            el("button", { class: "btn btn-sm btn-danger", text: "Supprimer", onclick: `deletePhoto(${p.id})` }),
+                        ]),
+                    ]),
+                ]);
+                photos.appendChild(item);
+            });
+        } else {
+            photos.innerHTML = '<div class="empty-state">Aucune photo</div>';
+        }
+
+        const tasks = document.getElementById("report-tasks");
+        if (_report.tasks && _report.tasks.length) {
+            tasks.innerHTML = "";
+            _report.tasks.forEach(t => {
+                tasks.appendChild(el("tr", {}, [
+                    el("td", { text: t.description }),
+                    el("td", {}, [el("span", { class: "badge badge-" + t.status, text: t.status })]),
+                    el("td", { text: t.estimated_cost != null ? t.estimated_cost + " &euro;" : "—" }),
+                    el("td", { text: t.estimated_duration != null ? t.estimated_duration + " h" : "—" }),
+                    el("td", {}, [
+                        el("button", { class: "btn btn-sm btn-secondary", text: "Modifier", onclick: `editTask(${t.id})` }),
+                        " ",
+                        el("button", { class: "btn btn-sm btn-danger", text: "Supprimer", onclick: `deleteTask(${t.id})` }),
+                    ]),
+                ]));
+            });
+        } else {
+            tasks.innerHTML = '<tr><td colspan="5" class="empty-state">Aucune t&acirc;che</td></tr>';
+        }
+    } catch (err) {
+        toast(err.message, "error");
+    }
+}
+
+function editReportInfo() {
+    if (!_report) return;
+    location.href = "/reports/" + REPORT_ID + "/edit";
+}
+
+async function generatePdf() {
+    try {
+        const data = await apiPost(API.reports + "/" + REPORT_ID + "/generate-pdf", {});
+        toast("PDF g&eacute;n&eacute;r&eacute;: " + data.pdf, "info");
+    } catch (err) { toast(err.message, "error"); }
+}
+
+function deleteReport() {
+    confirmDelete("ce rapport", API.reports + "/" + REPORT_ID, () => location.href = "/reports");
+}
+
+document.getElementById("form-photo").addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target;
+    const fd = new FormData();
+    fd.append("file", f.file.files[0]);
+    try {
+        await apiUpload(API.photos + "/" + REPORT_ID, fd);
+        closeModal("modal-photo");
+        f.reset();
+        toast("Photo ajout&eacute;e", "info");
+        loadReport();
+    } catch (err) { toast(err.message, "error"); }
+});
+
+document.getElementById("form-task").addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target;
+    const payload = Object.fromEntries(new FormData(f));
+    if (payload.estimated_cost) payload.estimated_cost = Number(payload.estimated_cost);
+    if (payload.estimated_duration) payload.estimated_duration = Number(payload.estimated_duration);
+    try {
+        await apiPost(API.tasks + "/" + REPORT_ID, payload);
+        closeModal("modal-task");
+        f.reset();
+        toast("T&acirc;che cr&eacute;&eacute;e", "info");
+        loadReport();
+    } catch (err) { toast(err.message, "error"); }
+});
+
+document.getElementById("form-signature").addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target;
+    const payload = Object.fromEntries(new FormData(f));
+    try {
+        if (_report && _report.signature) {
+            await apiPut(API.signatures + "/" + REPORT_ID, payload);
+        } else {
+            await apiPost(API.signatures + "/" + REPORT_ID, payload);
+        }
+        closeModal("modal-signature");
+        f.reset();
+        toast("Signature enregistr&eacute;e", "info");
+        loadReport();
+    } catch (err) { toast(err.message, "error"); }
+});
+
+function deletePhoto(id) {
+    confirmDelete("cette photo", API.photos + "/" + id, loadReport);
+}
+
+function deleteTask(id) {
+    confirmDelete("cette t&acirc;che", API.tasks + "/" + id, loadReport);
+}
+
+function editTask(id) {
+    const t = _report.tasks.find(x => x.id === id);
+    if (!t) return;
+    const desc = prompt("Description :", t.description);
+    if (desc === null) return;
+    const status = prompt("Statut (todo/done) :", t.status);
+    if (status === null) return;
+    apiPut(API.tasks + "/" + id, { description: desc, status }).then(() => {
+        toast("T&acirc;che mise &agrave; jour", "info");
+        loadReport();
+    }).catch(err => toast(err.message, "error"));
+}
+
+loadReport();
+</script>
+{% endblock %}

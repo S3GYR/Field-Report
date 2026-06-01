@@ -1,0 +1,60 @@
+{
+  "info": {
+    "projet": "Modernisation de la médiathèque",
+    "lieu": "Montreuil",
+    "intervenant": "Équipe BTP Nord",
+    "date": "2026-06-01",
+    "meteo": "☀️",
+    "gps": "48.855, 2.424"
+  },
+  "photos": [
+    {
+      "name": "Photo_001.jpg",
+      "title": "Façade principale",
+      "description": "Contrôle visuel de la façade bois fraîchement posée.",
+      "priority": "high",
+      "location": "48.85510, 2.42411",
+      "comment": "Reprendre l'alignement des lames sur la travée nord.",
+      "tasks": [
+        {
+          "numero": "T-101",
+          "description": "Vérifier joints d'étanchéité",
+          "date": "2026-06-01",
+          "statut": "inprogress",
+          "cout": "800",
+          "duree": "1 j"
+        },
+        {
+          "numero": "T-102",
+          "description": "Corriger fixation lisse",
+          "statut": "todo"
+        }
+      ]
+    },
+    {
+      "name": "Photo_002.jpg",
+      "title": "Salle de lecture",
+      "description": "Pose des luminaires suspendus",
+      "priority": "med",
+      "location": "48.85540, 2.42450",
+      "comment": "Prévoir une protection des suspensions avant peinture.",
+      "tasks": [
+        {
+          "numero": "T-201",
+          "description": "Tester l'intensité lumineuse",
+          "date": "2026-06-01",
+          "statut": "done",
+          "cout": "450",
+          "duree": "0.5 j"
+        }
+      ]
+    }
+  ],
+  "global_comment": "Chantier globalement conforme. Attention aux reprises de bardage.",
+  "signature": {
+    "name": "Laura Dupont",
+    "title": "Conductrice de travaux",
+    "date": "2026-06-01",
+    "validated": true
+  }
+}

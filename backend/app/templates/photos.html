@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+{% set active = "photos" %}
+{% block title %}Photos — Field Report{% endblock %}
+
+{% block content %}
+<div class="card-header" style="margin-bottom: 20px;">
+    <h1 class="card-title">Photos</h1>
+    <span style="color: var(--muted); font-size: 0.9rem;">Gestion des photos par rapport</span>
+</div>
+
+<div class="card">
+    <div class="form-group" style="max-width: 400px;">
+        <label class="form-label">Filtrer par rapport</label>
+        <select class="form-select" id="filter-report" onchange="loadPhotos()">
+            <option value="">Tous les rapports</option>
+        </select>
+    </div>
+    <div id="photos-list" class="photo-grid" style="margin-top: 16px;">
+        <div class="empty-state">Chargement…</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let _allPhotos = [];
+let _reports = [];
+
+async function loadPhotos() {
+    const container = document.getElementById("photos-list");
+    container.innerHTML = '<div class="empty-state">Chargement…</div>';
+    try {
+        [_allPhotos, _reports] = await Promise.all([
+            apiGet(API.photos + "/"),
+            apiGet(API.reports + "/"),
+        ]);
+
+        const sel = document.getElementById("filter-report");
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Tous les rapports</option>';
+        _reports.forEach(r => {
+            const opt = document.createElement("option");
+            opt.value = r.id;
+            opt.textContent = r.number + " — " + r.client;
+            sel.appendChild(opt);
+        });
+        sel.value = current;
+
+        const reportId = sel.value;
+        const photos = reportId ? _allPhotos.filter(p => p.report_id == reportId) : _allPhotos;
+
+        container.innerHTML = "";
+        if (photos.length === 0) {
+            container.innerHTML = '<div class="empty-state">Aucune photo</div>';
+            return;
+        }
+
+        photos.forEach(p => {
+            const report = _reports.find(r => r.id === p.report_id);
+            const item = el("div", { class: "photo-item" }, [
+                el("a", { href: "/storage/" + p.filepath, target: "_blank" }, [
+                    el("img", { src: "/storage/" + (p.thumbnail_path || p.filepath), alt: p.filename }),
+                ]),
+                el("div", { class: "photo-meta" }, [
+                    el("div", { text: p.filename }),
+                    el("div", { text: (p.comment || "") + (report ? " (" + report.number + ")" : "") }),
+                    el("div", {}, [
+                        el("button", { class: "btn btn-sm btn-danger", text: "Supprimer", onclick: `deletePhoto(${p.id})` }),
+                    ]),
+                ]),
+            ]);
+            container.appendChild(item);
+        });
+    } catch (err) {
+        container.innerHTML = `<div class="empty-state">Erreur: ${err.message}</div>`;
+    }
+}
+
+function deletePhoto(id) {
+    confirmDelete("cette photo", API.photos + "/" + id, loadPhotos);
+}
+
+loadPhotos();
+</script>
+{% endblock %}

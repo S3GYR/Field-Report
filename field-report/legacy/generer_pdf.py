@@ -2,6 +2,7 @@ import argparse
 import base64
 import io
 import json
+import os
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -11,8 +12,10 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
+from reportlab.graphics.shapes import Drawing, Rect, String
 from reportlab.platypus import (
     Image,
+    KeepInFrame,
     KeepTogether,
     PageBreak,
     Paragraph,
@@ -26,6 +29,17 @@ from xml.sax.saxutils import escape
 ROOT_DIR = Path(__file__).resolve().parent
 DEFAULT_DATA_FILE = ROOT_DIR / "rapport_data.json"
 DEFAULT_OUTPUT_FILE = ROOT_DIR / "rapport.pdf"
+DOC_LEFT_MARGIN = 18 * mm
+DOC_RIGHT_MARGIN = 18 * mm
+DOC_TOP_MARGIN = 20 * mm
+DOC_BOTTOM_MARGIN = 20 * mm
+DOC_FRAME_WIDTH = A4[0] - DOC_LEFT_MARGIN - DOC_RIGHT_MARGIN
+DOC_FRAME_HEIGHT = A4[1] - DOC_TOP_MARGIN - DOC_BOTTOM_MARGIN
+
+DEBUG_LAYOUT = os.environ.get("PDF_DEBUG_LAYOUT", "0") not in {"0", "false", "False", ""}
+DEBUG_CURRENT_PAGE = 1
+DEBUG_REMAINING_HEIGHT = DOC_FRAME_HEIGHT
+
 
 STATUS_LABELS = {
     "todo": "À faire",
@@ -37,7 +51,6 @@ PRIORITY_LABELS = {
     "med": "Moyenne",
     "low": "Basse",
 }
-
 
 def main() -> None:
     args = parse_args()
@@ -162,10 +175,10 @@ def generate_pdf(data: Dict[str, Any], output_path: Path) -> None:
     doc = SimpleDocTemplate(
         str(output_path),
         pagesize=A4,
-        leftMargin=18 * mm,
-        rightMargin=18 * mm,
-        topMargin=20 * mm,
-        bottomMargin=20 * mm,
+        leftMargin=DOC_LEFT_MARGIN,
+        rightMargin=DOC_RIGHT_MARGIN,
+        topMargin=DOC_TOP_MARGIN,
+        bottomMargin=DOC_BOTTOM_MARGIN,
     )
     doc.build(
         story,
@@ -248,6 +261,7 @@ def build_styles():
 
 
 def build_story(data: Dict[str, Any], stats: Dict[str, Any], styles) -> List[Any]:
+    reset_debug_layout_tracking()
     story: List[Any] = [Spacer(1, 1), PageBreak()]
     story.extend(build_info_section(data.get("info", {}), stats, styles))
     story.extend(build_photos_section(data.get("photos", []), styles))
@@ -308,19 +322,23 @@ def build_photos_section(photos: Sequence[Dict[str, Any]], styles) -> List[Any]:
 def build_photo_section(photo: Dict[str, Any], idx: int, styles) -> List[Any]:
     title = photo.get("title") or photo.get("name") or f"Photo {idx:02d}"
     header = Paragraph(f"Photo {idx:02d} — {escape_html(title)}", styles["SubHeading"])
+    debug_log_flowable("header", header, idx)
     meta_parts = []
     if photo.get("priority"):
         meta_parts.append(f"Priorité : <b>{escape_html(priority_label(photo['priority']))}</b>")
     if photo.get("location"):
         meta_parts.append(f"Localisation : {escape_html(photo['location'])}")
     meta = Paragraph(" · ".join(meta_parts), styles["Meta"]) if meta_parts else Spacer(1, 0)
+    debug_log_flowable("meta", meta, idx)
     description = (
         Paragraph(escape_html(photo.get("description")), styles["BodySmall"])
         if photo.get("description")
         else Spacer(1, 0)
     )
+    debug_log_flowable("description", description, idx)
 
     img = image_flowable(photo)
+    debug_log_flowable("image_or_placeholder", img, idx)
     right_column: List[Any] = []
     if photo.get("comment"):
         right_column.append(Paragraph(f"<b>Commentaire :</b> {escape_html(photo['comment'])}", styles["Comment"]))
@@ -329,7 +347,7 @@ def build_photo_section(photo: Dict[str, Any], idx: int, styles) -> List[Any]:
     if not right_column:
         right_column.append(Paragraph("", styles["BodySmall"]))
     layout = Table(
-        [[img, KeepTogether(right_column)]],
+        [[img, right_column]],
         colWidths=[80 * mm, None],
         style=[
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -337,12 +355,16 @@ def build_photo_section(photo: Dict[str, Any], idx: int, styles) -> List[Any]:
             ("RIGHTPADDING", (0, 0), (-1, -1), 8),
         ],
     )
+    debug_log_flowable("table_layout", layout, idx)
     tasks_table = build_tasks_table(photo.get("tasks", []), styles)
     content: List[Any] = [header, meta, description, layout]
     if tasks_table:
+        debug_log_flowable("tasks_table", tasks_table, idx)
         content.append(tasks_table)
     content.append(Spacer(1, 6 * mm))
-    return [KeepTogether(content)]
+    block = KeepTogether(content)
+    debug_log_flowable("keep_together_block", block, idx)
+    return [block]
 
 
 def build_tasks_table(tasks: Sequence[Dict[str, Any]], styles) -> Table | None:
@@ -504,22 +526,55 @@ def decode_image_source(photo: Dict[str, Any]):
     return None
 
 
-def placeholder_image(width: float, height: float) -> Table:
-    table = Table(
-        [[Paragraph("Image indisponible", ParagraphStyle(name="Placeholder", alignment=1, fontSize=9, textColor=colors.HexColor("#888888")))],
-        colWidths=[width],
-        rowHeights=[height],
+def placeholder_image(width: float, height: float):
+    drawing = Drawing(width, height)
+    drawing.add(
+        Rect(0, 0, width, height, fillColor=colors.HexColor("#f6f6f6"), strokeColor=colors.HexColor("#cccccc"), strokeWidth=0.5)
     )
-    table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f6f6f6")),
-                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]
+    drawing.add(
+        String(
+            width / 2,
+            height / 2 - 5,
+            "Image indisponible",
+            fontName="Helvetica",
+            fontSize=9,
+            fillColor=colors.HexColor("#888888"),
+            textAnchor="middle",
         )
     )
-    return table
+    return KeepInFrame(width, height, [drawing], hAlign="LEFT", vAlign="MIDDLE", mode="shrink")
+
+
+def debug_log_flowable(label: str, flowable: Any, photo_idx: int) -> None:
+    if not DEBUG_LAYOUT:
+        return
+    global DEBUG_CURRENT_PAGE, DEBUG_REMAINING_HEIGHT
+    try:
+        width, height = flowable.wrap(DOC_FRAME_WIDTH, DEBUG_REMAINING_HEIGHT)
+    except Exception as exc:  # noqa: BLE001
+        width = height = None
+        est_page = DEBUG_CURRENT_PAGE
+        info = f"wrap_error={exc}"
+    else:
+        est_page = DEBUG_CURRENT_PAGE
+        info = ""
+        if height is not None:
+            if height > DEBUG_REMAINING_HEIGHT and DEBUG_REMAINING_HEIGHT != DOC_FRAME_HEIGHT:
+                DEBUG_CURRENT_PAGE += 1
+                est_page = DEBUG_CURRENT_PAGE
+                DEBUG_REMAINING_HEIGHT = DOC_FRAME_HEIGHT - height
+            else:
+                DEBUG_REMAINING_HEIGHT -= height
+    print(
+        f"[layout-debug] photo={photo_idx} component={label} type={type(flowable).__name__} "
+        f"width={width} height={height} est_page~{est_page} {info}"
+    )
+
+
+def reset_debug_layout_tracking() -> None:
+    global DEBUG_CURRENT_PAGE, DEBUG_REMAINING_HEIGHT
+    DEBUG_CURRENT_PAGE = 1
+    DEBUG_REMAINING_HEIGHT = DOC_FRAME_HEIGHT
 
 
 def compute_stats(data: Dict[str, Any]) -> Dict[str, Any]:

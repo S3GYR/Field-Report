@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+{% set active = "tasks" %}
+{% block title %}T&acirc;ches — Field Report{% endblock %}
+
+{% block content %}
+<div class="card-header" style="margin-bottom: 20px;">
+    <h1 class="card-title">T&acirc;ches</h1>
+    <span style="color: var(--muted); font-size: 0.9rem;">Suivi des t&acirc;ches li&eacute;es aux rapports</span>
+</div>
+
+<div class="card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Rapport</th>
+                <th>Statut</th>
+                <th>Co&ucirc;t estim&eacute;</th>
+                <th>Dur&eacute;e estim&eacute;e</th>
+                <th style="width: 140px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tasks-table">
+            <tr><td colspan="6" class="empty-state">Chargement…</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let _tasks = [];
+let _reports = [];
+
+async function loadTasks() {
+    const tbody = document.getElementById("tasks-table");
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Chargement…</td></tr>';
+    try {
+        [_tasks, _reports] = await Promise.all([
+            apiGet(API.tasks + "/"),
+            apiGet(API.reports + "/"),
+        ]);
+        tbody.innerHTML = "";
+        if (_tasks.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aucune t&acirc;che</td></tr>';
+            return;
+        }
+        _tasks.forEach(t => {
+            const report = _reports.find(r => r.id === t.report_id);
+            tbody.appendChild(el("tr", {}, [
+                el("td", { text: t.description }),
+                el("td", {}, [el("a", { href: "/reports/" + t.report_id, text: report ? report.number : "—", style: "color:var(--primary);text-decoration:none;" })]),
+                el("td", {}, [el("span", { class: "badge badge-" + t.status, text: t.status })]),
+                el("td", { text: t.estimated_cost != null ? t.estimated_cost + " &euro;" : "—" }),
+                el("td", { text: t.estimated_duration != null ? t.estimated_duration + " h" : "—" }),
+                el("td", {}, [
+                    el("button", { class: "btn btn-sm btn-secondary", text: "Modifier", onclick: `editTask(${t.id})` }),
+                    " ",
+                    el("button", { class: "btn btn-sm btn-danger", text: "Supprimer", onclick: `deleteTask(${t.id})` }),
+                ]),
+            ]));
+        });
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Erreur: ${err.message}</td></tr>`;
+    }
+}
+
+function editTask(id) {
+    const t = _tasks.find(x => x.id === id);
+    if (!t) return;
+    const desc = prompt("Description :", t.description);
+    if (desc === null) return;
+    const status = prompt("Statut (todo/done) :", t.status);
+    if (status === null) return;
+    apiPut(API.tasks + "/" + id, { description: desc, status }).then(() => {
+        toast("T&acirc;che mise &agrave; jour", "info");
+        loadTasks();
+    }).catch(err => toast(err.message, "error"));
+}
+
+function deleteTask(id) {
+    const t = _tasks.find(x => x.id === id);
+    confirmDelete(`la t&acirc;che "${t.description}"`, API.tasks + "/" + id, loadTasks);
+}
+
+loadTasks();
+</script>
+{% endblock %}

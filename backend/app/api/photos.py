@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models import Photo, Report
-from app.schemas import PhotoResponse
+from app.schemas import PhotoResponse, UpdatePhoto
 from app.services.photo_storage import photo_storage
 
 router = APIRouter()
@@ -23,6 +23,33 @@ def upload_photo(report_id: int, file: UploadFile = File(...), db: Session = Dep
         filepath=stored["filepath"],
         thumbnail_path=stored["thumbnail_path"],
     )
+    db.add(photo)
+    db.commit()
+    db.refresh(photo)
+    return photo
+
+
+@router.get("/", response_model=list[PhotoResponse])
+def list_photos(db: Session = Depends(get_db)):
+    return db.query(Photo).all()
+
+
+@router.get("/{photo_id}", response_model=PhotoResponse)
+def get_photo(photo_id: int, db: Session = Depends(get_db)):
+    photo = db.get(Photo, photo_id)
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    return photo
+
+
+@router.put("/{photo_id}", response_model=PhotoResponse)
+def update_photo(photo_id: int, payload: UpdatePhoto, db: Session = Depends(get_db)):
+    photo = db.get(Photo, photo_id)
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        if key not in ("id", "filename", "filepath", "thumbnail_path"):
+            setattr(photo, key, value)
     db.add(photo)
     db.commit()
     db.refresh(photo)

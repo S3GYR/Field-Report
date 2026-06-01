@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+{% set active = "signatures" %}
+{% block title %}Signatures — Field Report{% endblock %}
+
+{% block content %}
+<div class="card-header" style="margin-bottom: 20px;">
+    <h1 class="card-title">Signatures</h1>
+    <span style="color: var(--muted); font-size: 0.9rem;">Signatures des rapports</span>
+</div>
+
+<div class="card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>R&ocirc;le</th>
+                <th>Date</th>
+                <th>Rapport</th>
+                <th style="width: 120px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="signatures-table">
+            <tr><td colspan="5" class="empty-state">Chargement…</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let _signatures = [];
+let _reports = [];
+
+async function loadSignatures() {
+    const tbody = document.getElementById("signatures-table");
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Chargement…</td></tr>';
+    try {
+        [_signatures, _reports] = await Promise.all([
+            apiGet(API.signatures + "/"),
+            apiGet(API.reports + "/"),
+        ]);
+        tbody.innerHTML = "";
+        if (_signatures.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Aucune signature</td></tr>';
+            return;
+        }
+        _signatures.forEach(s => {
+            const report = _reports.find(r => r.id === s.report_id);
+            tbody.appendChild(el("tr", {}, [
+                el("td", { text: s.name }),
+                el("td", { text: s.role || "—" }),
+                el("td", { text: formatDate(s.signed_on) }),
+                el("td", {}, [el("a", { href: "/reports/" + s.report_id, text: report ? report.number : "—", style: "color:var(--primary);text-decoration:none;" })]),
+                el("td", {}, [
+                    el("button", { class: "btn btn-sm btn-secondary", text: "Modifier", onclick: `editSignature(${s.report_id})` }),
+                    " ",
+                    el("button", { class: "btn btn-sm btn-danger", text: "Supprimer", onclick: `deleteSignature(${s.report_id})` }),
+                ]),
+            ]));
+        });
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Erreur: ${err.message}</td></tr>`;
+    }
+}
+
+function editSignature(reportId) {
+    const s = _signatures.find(x => x.report_id === reportId);
+    if (!s) return;
+    const name = prompt("Nom :", s.name);
+    if (name === null) return;
+    const role = prompt("R&ocirc;le :", s.role || "");
+    if (role === null) return;
+    const signed_on = prompt("Date (YYYY-MM-DD) :", s.signed_on || "");
+    if (signed_on === null) return;
+    apiPut(API.signatures + "/" + reportId, { name, role, signed_on }).then(() => {
+        toast("Signature mise &agrave; jour", "info");
+        loadSignatures();
+    }).catch(err => toast(err.message, "error"));
+}
+
+function deleteSignature(reportId) {
+    const s = _signatures.find(x => x.report_id === reportId);
+    confirmDelete(`la signature de ${s.name}`, API.signatures + "/" + reportId, loadSignatures);
+}
+
+loadSignatures();
+</script>
+{% endblock %}

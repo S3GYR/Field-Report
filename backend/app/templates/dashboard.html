@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+{% set active = "dashboard" %}
+{% block title %}Tableau de bord — Field Report{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 20px; font-size: 1.5rem; font-weight: 700;">Tableau de bord</h1>
+
+<div class="grid-3" id="stats-container">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Rapports</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div style="font-size: 2rem; font-weight: 700;" id="stat-reports">—</div>
+        <a href="/reports" style="font-size: 0.85rem; color: var(--primary);">Voir les rapports &rarr;</a>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Photos</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        </div>
+        <div style="font-size: 2rem; font-weight: 700;" id="stat-photos">—</div>
+        <a href="/photos" style="font-size: 0.85rem; color: var(--primary);">Voir les photos &rarr;</a>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">T&acirc;ches</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div style="font-size: 2rem; font-weight: 700;" id="stat-tasks">—</div>
+        <a href="/tasks" style="font-size: 0.85rem; color: var(--primary);">Voir les t&acirc;ches &rarr;</a>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <span class="card-title">Derniers rapports</span>
+        <a href="/reports" class="btn btn-sm btn-secondary">Tous les rapports</a>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr><th>N&deg;</th><th>Client</th><th>Site</th><th>Date</th><th>Statut</th></tr>
+        </thead>
+        <tbody id="recent-reports">
+            <tr><td colspan="5" class="empty-state">Chargement…</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(async function() {
+    try {
+        const [reports, photos, tasks] = await Promise.all([
+            apiGet(API.reports + "/"),
+            apiGet(API.photos + "/"),
+            apiGet(API.tasks + "/"),
+        ]);
+        document.getElementById("stat-reports").textContent = reports.length;
+        document.getElementById("stat-photos").textContent = photos.length;
+        document.getElementById("stat-tasks").textContent = tasks.length;
+
+        const tbody = document.getElementById("recent-reports");
+        tbody.innerHTML = "";
+        const recent = reports.slice(0, 5);
+        if (recent.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Aucun rapport</td></tr>';
+        } else {
+            recent.forEach(r => {
+                const tr = el("tr", {}, [
+                    el("td", { text: r.number }),
+                    el("td", { text: r.client }),
+                    el("td", { text: r.site }),
+                    el("td", { text: formatDate(r.visit_date) }),
+                    el("td", {}, [el("span", { class: "badge badge-" + r.status, text: r.status })]),
+                ]);
+                tr.style.cursor = "pointer";
+                tr.onclick = () => location.href = "/reports/" + r.id;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch (err) {
+        toast(err.message, "error");
+    }
+})();
+</script>
+{% endblock %}

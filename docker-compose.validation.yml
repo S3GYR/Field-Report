@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  validation:
+    image: python:3.11-slim
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    environment:
+      - PYTHONPATH=/workspace/field-report
+    command: >-
+      sh -c "pip install --upgrade pip && pip install -r backend/requirements.txt && pytest tests"
