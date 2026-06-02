@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pathlib
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -10,7 +11,8 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-templates = Jinja2Templates(directory=str(settings.storage_root.parent / "app" / "templates"))
+BASE_DIR = pathlib.Path(__file__).resolve().parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 def create_app() -> FastAPI:
@@ -27,7 +29,7 @@ def create_app() -> FastAPI:
     app.include_router(api_router, prefix=settings.api_prefix)
     app.mount(
         "/static",
-        StaticFiles(directory=str(settings.storage_root.parent / "app" / "static")),
+        StaticFiles(directory=str(BASE_DIR / "static")),
         name="static",
     )
     app.mount("/exports", StaticFiles(directory=settings.exports_root), name="exports")
@@ -62,6 +64,10 @@ def create_app() -> FastAPI:
     @app.get("/signatures", tags=["ui"])
     def page_signatures(request: Request):
         return templates.TemplateResponse("signatures.html", {"request": request})
+
+    @app.get("/history", tags=["ui"])
+    def page_history(request: Request):
+        return templates.TemplateResponse("history.html", {"request": request})
 
     return app
 

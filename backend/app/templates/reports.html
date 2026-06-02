@@ -9,6 +9,9 @@
 </div>
 
 <div class="card">
+    <div class="form-group" style="margin-bottom: 12px;">
+        <input class="form-input" id="report-search" type="search" placeholder="Rechercher un rapport…" oninput="filterReports()">
+    </div>
     <table class="data-table">
         <thead>
             <tr>
@@ -57,8 +60,10 @@
                     <select class="form-select" name="weather">
                         <option value="sunny">Ensoleill&eacute;</option>
                         <option value="cloudy">Nuageux</option>
-                        <option value="rainy">Pluvieux</option>
-                        <option value="windy">Venteux</option>
+                        <option value="rain">Pluvieux</option>
+                        <option value="storm">Orageux</option>
+                        <option value="snow">Neigeux</option>
+                        <option value="fog">Brumeux</option>
                         <option value="unknown">Inconnu</option>
                     </select>
                 </div>
@@ -114,8 +119,10 @@
                     <select class="form-select" name="weather">
                         <option value="sunny">Ensoleill&eacute;</option>
                         <option value="cloudy">Nuageux</option>
-                        <option value="rainy">Pluvieux</option>
-                        <option value="windy">Venteux</option>
+                        <option value="rain">Pluvieux</option>
+                        <option value="storm">Orageux</option>
+                        <option value="snow">Neigeux</option>
+                        <option value="fog">Brumeux</option>
                         <option value="unknown">Inconnu</option>
                     </select>
                 </div>
@@ -205,6 +212,16 @@ function editReport(id) {
 function deleteReport(id) {
     const r = _reports.find(x => x.id === id);
     confirmDelete(`le rapport ${r.number}`, API.reports + "/" + id, loadReports);
+}
+
+function filterReports() {
+    const q = document.getElementById("report-search").value.toLowerCase();
+    const rows = document.querySelectorAll("#reports-table tr");
+    rows.forEach(row => {
+        if (row.querySelector("td.empty-state")) return;
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? "" : "none";
+    });
 }
 
 document.getElementById("form-report").addEventListener("submit", async e => {

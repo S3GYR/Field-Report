@@ -10,6 +10,9 @@
 
 <div class="card">
     <div class="form-group" style="max-width: 400px;">
+        <input class="form-input" id="photo-search" type="search" placeholder="Rechercher une photo…" oninput="filterPhotos()">
+    </div>
+    <div class="form-group" style="max-width: 400px;">
         <label class="form-label">Filtrer par rapport</label>
         <select class="form-select" id="filter-report" onchange="loadPhotos()">
             <option value="">Tous les rapports</option>
@@ -78,6 +81,15 @@ async function loadPhotos() {
 
 function deletePhoto(id) {
     confirmDelete("cette photo", API.photos + "/" + id, loadPhotos);
+}
+
+function filterPhotos() {
+    const q = document.getElementById("photo-search").value.toLowerCase();
+    const items = document.querySelectorAll("#photos-list .photo-item");
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(q) ? "" : "none";
+    });
 }
 
 loadPhotos();

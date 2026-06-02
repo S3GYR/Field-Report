@@ -9,6 +9,9 @@
 </div>
 
 <div class="card">
+    <div class="form-group" style="margin-bottom: 12px;">
+        <input class="form-input" id="task-search" type="search" placeholder="Rechercher une t&acirc;che…" oninput="filterTasks()">
+    </div>
     <table class="data-table">
         <thead>
             <tr>
@@ -24,6 +27,46 @@
             <tr><td colspan="6" class="empty-state">Chargement…</td></tr>
         </tbody>
     </table>
+</div>
+
+<!-- Modal: Edit task -->
+<div class="modal-overlay" id="modal-task-edit">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Modifier la t&acirc;che</span>
+            <button class="modal-close" onclick="closeModal('modal-task-edit')">&times;</button>
+        </div>
+        <form id="form-task-edit">
+            <input type="hidden" name="task_id" id="edit-task-id">
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <input class="form-input" name="description" required>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Co&ucirc;t estim&eacute; (&euro;)</label>
+                    <input class="form-input" type="number" step="0.01" name="estimated_cost">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Dur&eacute;e estim&eacute;e (h)</label>
+                    <input class="form-input" type="number" step="0.1" name="estimated_duration">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Statut</label>
+                <select class="form-select" name="status">
+                    <option value="todo">&Agrave; faire</option>
+                    <option value="in_progress">En cours</option>
+                    <option value="done">Termin&eacute;e</option>
+                    <option value="blocked">Bloqu&eacute;e</option>
+                </select>
+            </div>
+            <div style="display:flex; gap: 8px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-task-edit')">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}
 
@@ -68,20 +111,45 @@ async function loadTasks() {
 function editTask(id) {
     const t = _tasks.find(x => x.id === id);
     if (!t) return;
-    const desc = prompt("Description :", t.description);
-    if (desc === null) return;
-    const status = prompt("Statut (todo/done) :", t.status);
-    if (status === null) return;
-    apiPut(API.tasks + "/" + id, { description: desc, status }).then(() => {
-        toast("T&acirc;che mise &agrave; jour", "info");
-        loadTasks();
-    }).catch(err => toast(err.message, "error"));
+    const f = document.getElementById("form-task-edit");
+    f.description.value = t.description;
+    f.estimated_cost.value = t.estimated_cost || "";
+    f.estimated_duration.value = t.estimated_duration || "";
+    f.status.value = t.status;
+    document.getElementById("edit-task-id").value = t.id;
+    openModal("modal-task-edit");
 }
 
 function deleteTask(id) {
     const t = _tasks.find(x => x.id === id);
     confirmDelete(`la t&acirc;che "${t.description}"`, API.tasks + "/" + id, loadTasks);
 }
+
+function filterTasks() {
+    const q = document.getElementById("task-search").value.toLowerCase();
+    const rows = document.querySelectorAll("#tasks-table tr");
+    rows.forEach(row => {
+        if (row.querySelector("td.empty-state")) return;
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? "" : "none";
+    });
+}
+
+document.getElementById("form-task-edit").addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target;
+    const payload = Object.fromEntries(new FormData(f));
+    delete payload.task_id;
+    if (payload.estimated_cost) payload.estimated_cost = Number(payload.estimated_cost);
+    if (payload.estimated_duration) payload.estimated_duration = Number(payload.estimated_duration);
+    try {
+        await apiPut(API.tasks + "/" + document.getElementById("edit-task-id").value, payload);
+        closeModal("modal-task-edit");
+        f.reset();
+        toast("T&acirc;che mise &agrave; jour", "info");
+        loadTasks();
+    } catch (err) { toast(err.message, "error"); }
+});
 
 loadTasks();
 </script>

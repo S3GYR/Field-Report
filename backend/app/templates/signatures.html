@@ -9,6 +9,9 @@
 </div>
 
 <div class="card">
+    <div class="form-group" style="margin-bottom: 12px;">
+        <input class="form-input" id="signature-search" type="search" placeholder="Rechercher une signature…" oninput="filterSignatures()">
+    </div>
     <table class="data-table">
         <thead>
             <tr>
@@ -23,6 +26,35 @@
             <tr><td colspan="5" class="empty-state">Chargement…</td></tr>
         </tbody>
     </table>
+</div>
+
+<!-- Modal: Edit signature -->
+<div class="modal-overlay" id="modal-signature-edit">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Modifier la signature</span>
+            <button class="modal-close" onclick="closeModal('modal-signature-edit')">&times;</button>
+        </div>
+        <form id="form-signature-edit">
+            <input type="hidden" name="report_id" id="edit-sig-report-id">
+            <div class="form-group">
+                <label class="form-label">Nom</label>
+                <input class="form-input" name="name" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">R&ocirc;le</label>
+                <input class="form-input" name="role">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date de signature</label>
+                <input class="form-input" type="date" name="signed_on">
+            </div>
+            <div style="display:flex; gap: 8px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-signature-edit')">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}
 
@@ -66,22 +98,42 @@ async function loadSignatures() {
 function editSignature(reportId) {
     const s = _signatures.find(x => x.report_id === reportId);
     if (!s) return;
-    const name = prompt("Nom :", s.name);
-    if (name === null) return;
-    const role = prompt("R&ocirc;le :", s.role || "");
-    if (role === null) return;
-    const signed_on = prompt("Date (YYYY-MM-DD) :", s.signed_on || "");
-    if (signed_on === null) return;
-    apiPut(API.signatures + "/" + reportId, { name, role, signed_on }).then(() => {
-        toast("Signature mise &agrave; jour", "info");
-        loadSignatures();
-    }).catch(err => toast(err.message, "error"));
+    const f = document.getElementById("form-signature-edit");
+    f.name.value = s.name;
+    f.role.value = s.role || "";
+    f.signed_on.value = s.signed_on || "";
+    document.getElementById("edit-sig-report-id").value = s.report_id;
+    openModal("modal-signature-edit");
 }
 
 function deleteSignature(reportId) {
     const s = _signatures.find(x => x.report_id === reportId);
     confirmDelete(`la signature de ${s.name}`, API.signatures + "/" + reportId, loadSignatures);
 }
+
+function filterSignatures() {
+    const q = document.getElementById("signature-search").value.toLowerCase();
+    const rows = document.querySelectorAll("#signatures-table tr");
+    rows.forEach(row => {
+        if (row.querySelector("td.empty-state")) return;
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? "" : "none";
+    });
+}
+
+document.getElementById("form-signature-edit").addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target;
+    const payload = Object.fromEntries(new FormData(f));
+    delete payload.report_id;
+    try {
+        await apiPut(API.signatures + "/" + document.getElementById("edit-sig-report-id").value, payload);
+        closeModal("modal-signature-edit");
+        f.reset();
+        toast("Signature mise &agrave; jour", "info");
+        loadSignatures();
+    } catch (err) { toast(err.message, "error"); }
+});
 
 loadSignatures();
 </script>

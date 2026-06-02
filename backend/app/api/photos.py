@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -12,7 +12,14 @@ router = APIRouter()
 
 
 @router.post("/{report_id}", response_model=PhotoResponse, status_code=status.HTTP_201_CREATED)
-def upload_photo(report_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+def upload_photo(
+    report_id: int,
+    file: UploadFile = File(...),
+    gps_lat: float | None = Form(default=None),
+    gps_lng: float | None = Form(default=None),
+    gps_accuracy: float | None = Form(default=None),
+    db: Session = Depends(get_db),
+):
     report = db.get(Report, report_id)
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -22,6 +29,9 @@ def upload_photo(report_id: int, file: UploadFile = File(...), db: Session = Dep
         filename=stored["filename"],
         filepath=stored["filepath"],
         thumbnail_path=stored["thumbnail_path"],
+        gps_lat=gps_lat,
+        gps_lng=gps_lng,
+        gps_accuracy=gps_accuracy,
     )
     db.add(photo)
     db.commit()

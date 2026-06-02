@@ -19,6 +19,7 @@
             <a href="/photos" class="{% if active == 'photos' %}active{% endif %}">Photos</a>
             <a href="/tasks" class="{% if active == 'tasks' %}active{% endif %}">T&acirc;ches</a>
             <a href="/signatures" class="{% if active == 'signatures' %}active{% endif %}">Signatures</a>
+            <a href="/history" class="{% if active == 'history' %}active{% endif %}">Historique</a>
         </nav>
     </header>
 
@@ -31,6 +32,21 @@
     </footer>
 
     <div id="toast-container"></div>
+<!-- Modal: Confirm delete -->
+<div class="modal-overlay" id="modal-confirm-delete">
+    <div class="modal" style="max-width: 420px;">
+        <div class="modal-header">
+            <span class="modal-title">Confirmer la suppression</span>
+            <button class="modal-close" onclick="closeModal('modal-confirm-delete')">&times;</button>
+        </div>
+        <p id="confirm-delete-msg" style="margin-bottom: 20px;"></p>
+        <div style="display:flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('modal-confirm-delete')">Annuler</button>
+            <button type="button" class="btn btn-danger" id="btn-confirm-delete" onclick="executeDelete()">Supprimer</button>
+        </div>
+    </div>
+</div>
+
 
     <script src="/static/js/app.js"></script>
     {% block extra_js %}{% endblock %}

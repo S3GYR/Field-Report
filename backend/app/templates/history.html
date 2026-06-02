@@ -1,0 +1,81 @@
+{% extends "layout.html" %}
+{% set active = "history" %}
+{% block title %}Historique — Field Report{% endblock %}
+
+{% block content %}
+<div class="card-header" style="margin-bottom: 20px;">
+    <h1 class="card-title">Historique des interventions</h1>
+    <span style="color: var(--muted); font-size: 0.9rem;">Suivi chronologique par zone / site</span>
+</div>
+
+<div class="card">
+    <div class="form-group" style="max-width: 400px; margin-bottom: 12px;">
+        <label class="form-label">Filtrer par site</label>
+        <select class="form-select" id="filter-site" onchange="loadHistory()">
+            <option value="">Tous les sites</option>
+        </select>
+    </div>
+    <div id="history-list" style="margin-top: 16px;">
+        <div class="empty-state">Chargement…</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let _allReports = [];
+
+async function loadHistory() {
+    const container = document.getElementById("history-list");
+    container.innerHTML = '<div class="empty-state">Chargement…</div>';
+    try {
+        _allReports = await apiGet(API.reports + "/");
+        const sel = document.getElementById("filter-site");
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Tous les sites</option>';
+        const sites = [...new Set(_allReports.map(r => r.site))].sort();
+        sites.forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = s;
+            opt.textContent = s;
+            sel.appendChild(opt);
+        });
+        sel.value = current;
+
+        const site = sel.value;
+        const reports = site ? _allReports.filter(r => r.site === site) : _allReports;
+        reports.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
+
+        container.innerHTML = "";
+        if (reports.length === 0) {
+            container.innerHTML = '<div class="empty-state">Aucun rapport</div>';
+            return;
+        }
+
+        reports.forEach(r => {
+            const card = el("div", { class: "card", style: "margin-bottom: 12px; padding: 16px;" }, [
+                el("div", { style: "display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;" }, [
+                    el("a", { href: "/reports/" + r.id, text: r.number, style: "font-weight:600;color:var(--primary);text-decoration:none;" }),
+                    el("span", { text: formatDate(r.visit_date), style: "color:var(--muted);font-size:0.85rem;" }),
+                ]),
+                el("div", { style: "margin-bottom:4px;" }, [
+                    el("span", { text: r.client + " — " + r.site, style: "font-size:0.9rem;" }),
+                ]),
+                el("div", { style: "margin-bottom:4px;" }, [
+                    el("span", { class: "badge badge-" + r.status, text: r.status }),
+                ]),
+                r.comments ? el("p", { text: r.comments, style: "font-size:0.85rem;color:var(--muted);margin-top:4px;" }) : el("span"),
+                el("div", { style: "margin-top:8px;font-size:0.8rem;color:var(--muted);" }, [
+                    el("span", { text: (r.photos?.length || 0) + " photo(s), " + (r.tasks?.length || 0) + " t&acirc;che(s)" }),
+                ]),
+            ]);
+            container.appendChild(card);
+        });
+    } catch (err) {
+        container.innerHTML = `<div class="empty-state">Erreur: ${err.message}</div>`;
+    }
+}
+
+loadHistory();
+</script>
+{% endblock %}

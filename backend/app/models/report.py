@@ -74,6 +74,7 @@ class Photo(Base):
     thumbnail_path: Mapped[Optional[str]] = mapped_column(String(500))
     gps_lat: Mapped[Optional[float]] = mapped_column(Float)
     gps_lng: Mapped[Optional[float]] = mapped_column(Float)
+    gps_accuracy: Mapped[Optional[float]] = mapped_column(Float)
     comment: Mapped[Optional[str]] = mapped_column(Text)
     priority: Mapped[PhotoPriority] = mapped_column(
         SAEnum(PhotoPriority), default=PhotoPriority.none

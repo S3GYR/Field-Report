@@ -14,6 +14,7 @@ class PhotoBase(BaseModel):
     priority: PhotoPriority = PhotoPriority.none
     gps_lat: Optional[float] = Field(default=None, ge=-90, le=90)
     gps_lng: Optional[float] = Field(default=None, ge=-180, le=180)
+    gps_accuracy: Optional[float] = Field(default=None, ge=0)
 
 
 class CreatePhoto(PhotoBase):
@@ -25,6 +26,7 @@ class UpdatePhoto(PhotoBase):
     priority: Optional[PhotoPriority] = None
     gps_lat: Optional[float] = Field(default=None, ge=-90, le=90)
     gps_lng: Optional[float] = Field(default=None, ge=-180, le=180)
+    gps_accuracy: Optional[float] = Field(default=None, ge=0)
 
 
 class PhotoResponse(PhotoBase):
@@ -32,6 +34,7 @@ class PhotoResponse(PhotoBase):
     filename: str
     filepath: str
     thumbnail_path: Optional[str] = None
+    report_id: int
 
     model_config = ConfigDict(from_attributes=True)
 

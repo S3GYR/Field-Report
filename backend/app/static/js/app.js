@@ -79,12 +79,20 @@ function openModal(id) { document.getElementById(id).classList.add("open"); }
 function closeModal(id) { document.getElementById(id).classList.remove("open"); }
 
 /* Global confirm delete */
-window.confirmDelete = async function(label, apiUrl, onSuccess) {
-    if (!confirm(`Supprimer ${label} ?`)) return;
+let _pendingDelete = { url: null, onSuccess: null };
+window.confirmDelete = function(label, apiUrl, onSuccess) {
+    _pendingDelete = { url: apiUrl, onSuccess };
+    document.getElementById("confirm-delete-msg").textContent = `Supprimer ${label} ?`;
+    openModal("modal-confirm-delete");
+};
+window.executeDelete = async function() {
+    closeModal("modal-confirm-delete");
+    if (!_pendingDelete.url) return;
     try {
-        await apiDelete(apiUrl);
+        await apiDelete(_pendingDelete.url);
         toast("Supprimé", "info");
-        if (onSuccess) onSuccess();
+        if (_pendingDelete.onSuccess) _pendingDelete.onSuccess();
+        _pendingDelete = { url: null, onSuccess: null };
     } catch (err) {
         toast(err.message, "error");
     }

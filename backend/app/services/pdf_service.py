@@ -48,7 +48,7 @@ class ReportPdfService:
                 ["Client", report.client],
                 ["Site", report.site],
                 ["Date de visite", str(report.visit_date)],
-                ["M&eacute;t&eacute;o", report.weather],
+                ["Météo", report.weather],
                 ["Statut", report.status],
             ]
             info_table = Table(info_data, colWidths=[40 * mm, None])
@@ -70,8 +70,8 @@ class ReportPdfService:
                 story.append(Spacer(1, 6 * mm))
 
             if report.tasks:
-                story.append(Paragraph("T&acirc;ches", styles["Heading2"]))
-                task_data = [["Description", "Statut", "Co&ucirc;t", "Dur&eacute;e"]]
+                story.append(Paragraph("Tâches", styles["Heading2"]))
+                task_data = [["Description", "Statut", "Coût", "Durée"]]
                 for t in report.tasks:
                     task_data.append(
                         [
@@ -100,7 +100,19 @@ class ReportPdfService:
             if report.photos:
                 story.append(Paragraph("Photos", styles["Heading2"]))
                 for photo in report.photos:
-                    story.append(Paragraph(photo.filename, styles["BodyText"]))
+                    photo_path = settings.storage_root / photo.filepath
+                    if photo_path.exists():
+                        from reportlab.platypus import Image
+                        img = Image(str(photo_path), width=120 * mm, height=80 * mm)
+                        img.keepRatio = True
+                        story.append(img)
+                    else:
+                        story.append(Paragraph(photo.filename, styles["BodyText"]))
+                    if photo.gps_lat is not None and photo.gps_lng is not None:
+                        story.append(Paragraph(f"GPS : {photo.gps_lat:.5f}, {photo.gps_lng:.5f} (±{photo.gps_accuracy or '?' }m)", styles["BodyText"]))
+                    if photo.comment:
+                        story.append(Paragraph(f"Commentaire : {photo.comment}", styles["BodyText"]))
+                    story.append(Spacer(1, 3 * mm))
                 story.append(Spacer(1, 6 * mm))
 
             if report.signature:
@@ -108,8 +120,15 @@ class ReportPdfService:
                 sig = report.signature
                 story.append(Paragraph(f"Nom : {sig.name}", styles["BodyText"]))
                 if sig.role:
-                    story.append(Paragraph(f"R&ocirc;le : {sig.role}", styles["BodyText"]))
+                    story.append(Paragraph(f"Rôle : {sig.role}", styles["BodyText"]))
                 story.append(Paragraph(f"Date : {sig.signed_on}", styles["BodyText"]))
+                if sig.signature_image:
+                    sig_path = settings.storage_root / sig.signature_image
+                    if sig_path.exists():
+                        from reportlab.platypus import Image
+                        img = Image(str(sig_path), width=80 * mm, height=40 * mm)
+                        img.keepRatio = True
+                        story.append(img)
 
             doc.build(story)
             return output_path

@@ -68,8 +68,12 @@
         <form id="form-photo">
             <div class="form-group">
                 <label class="form-label">Fichier image</label>
-                <input class="form-input" type="file" name="file" accept="image/*" required>
+                <input class="form-input" type="file" name="file" accept="image/*" capture="environment" required>
+                <div id="gps-status" style="font-size:0.8rem;color:var(--muted);margin-top:4px;">GPS : acquisition en cours…</div>
             </div>
+            <input type="hidden" name="gps_lat" id="gps-lat">
+            <input type="hidden" name="gps_lng" id="gps-lng">
+            <input type="hidden" name="gps_accuracy" id="gps-accuracy">
             <div class="form-group">
                 <label class="form-label">Commentaire</label>
                 <input class="form-input" name="comment">
@@ -95,10 +99,11 @@
 <div class="modal-overlay" id="modal-task">
     <div class="modal">
         <div class="modal-header">
-            <span class="modal-title">Nouvelle t&acirc;che</span>
+            <span class="modal-title" id="modal-task-title">Nouvelle t&acirc;che</span>
             <button class="modal-close" onclick="closeModal('modal-task')">&times;</button>
         </div>
         <form id="form-task">
+            <input type="hidden" name="task_id" id="task-id">
             <div class="form-group">
                 <label class="form-label">Description</label>
                 <input class="form-input" name="description" required>
@@ -113,9 +118,18 @@
                     <input class="form-input" type="number" step="0.1" name="estimated_duration">
                 </div>
             </div>
+            <div class="form-group">
+                <label class="form-label">Statut</label>
+                <select class="form-select" name="status">
+                    <option value="todo">À faire</option>
+                    <option value="in_progress">En cours</option>
+                    <option value="done">Termin&eacute;e</option>
+                    <option value="blocked">Bloqu&eacute;e</option>
+                </select>
+            </div>
             <div style="display:flex; gap: 8px; justify-content: flex-end;">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('modal-task')">Annuler</button>
-                <button type="submit" class="btn btn-primary">Cr&eacute;er</button>
+                <button type="submit" class="btn btn-primary" id="btn-task-submit">Cr&eacute;er</button>
             </div>
         </form>
     </div>
@@ -185,10 +199,16 @@ async function loadReport() {
         if (_report.photos && _report.photos.length) {
             photos.innerHTML = "";
             _report.photos.forEach(p => {
+                const gpsLink = (p.gps_lat != null && p.gps_lng != null)
+                    ? el("a", { href: `https://maps.google.com/?q=${p.gps_lat},${p.gps_lng}`, target: "_blank", text: `GPS : ${p.gps_lat.toFixed(5)}, ${p.gps_lng.toFixed(5)}`, style: "font-size:0.75rem;color:var(--primary);" })
+                    : el("span", { text: "", style: "display:none;" });
                 const item = el("div", { class: "photo-item" }, [
-                    el("img", { src: "/storage/" + (p.thumbnail_path || p.filepath) }),
+                    el("a", { href: "/storage/" + p.filepath, target: "_blank" }, [
+                        el("img", { src: "/storage/" + (p.thumbnail_path || p.filepath) }),
+                    ]),
                     el("div", { class: "photo-meta" }, [
                         el("div", { text: p.comment || p.filename }),
+                        gpsLink,
                         el("div", {}, [
                             el("button", { class: "btn btn-sm btn-danger", text: "Supprimer", onclick: `deletePhoto(${p.id})` }),
                         ]),
@@ -226,7 +246,7 @@ async function loadReport() {
 
 function editReportInfo() {
     if (!_report) return;
-    location.href = "/reports/" + REPORT_ID + "/edit";
+    location.href = "/reports";
 }
 
 async function generatePdf() {
@@ -240,11 +260,38 @@ function deleteReport() {
     confirmDelete("ce rapport", API.reports + "/" + REPORT_ID, () => location.href = "/reports");
 }
 
+function acquireGps() {
+    const status = document.getElementById("gps-status");
+    document.getElementById("gps-lat").value = "";
+    document.getElementById("gps-lng").value = "";
+    document.getElementById("gps-accuracy").value = "";
+    status.textContent = "GPS : acquisition en cours…";
+    if (!navigator.geolocation) {
+        status.textContent = "GPS : non disponible";
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            document.getElementById("gps-lat").value = pos.coords.latitude;
+            document.getElementById("gps-lng").value = pos.coords.longitude;
+            document.getElementById("gps-accuracy").value = pos.coords.accuracy;
+            status.textContent = `GPS : ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)} (±${Math.round(pos.coords.accuracy)}m)`;
+        },
+        () => { status.textContent = "GPS : échec de l'acquisition"; },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+}
+
+document.getElementById("modal-photo").addEventListener("transitionend", acquireGps);
+
 document.getElementById("form-photo").addEventListener("submit", async e => {
     e.preventDefault();
     const f = e.target;
     const fd = new FormData();
     fd.append("file", f.file.files[0]);
+    if (f.gps_lat.value) fd.append("gps_lat", f.gps_lat.value);
+    if (f.gps_lng.value) fd.append("gps_lng", f.gps_lng.value);
+    if (f.gps_accuracy.value) fd.append("gps_accuracy", f.gps_accuracy.value);
     try {
         await apiUpload(API.photos + "/" + REPORT_ID, fd);
         closeModal("modal-photo");
@@ -258,13 +305,23 @@ document.getElementById("form-task").addEventListener("submit", async e => {
     e.preventDefault();
     const f = e.target;
     const payload = Object.fromEntries(new FormData(f));
+    delete payload.task_id;
     if (payload.estimated_cost) payload.estimated_cost = Number(payload.estimated_cost);
     if (payload.estimated_duration) payload.estimated_duration = Number(payload.estimated_duration);
     try {
-        await apiPost(API.tasks + "/" + REPORT_ID, payload);
+        const taskId = document.getElementById("task-id").value;
+        if (taskId) {
+            await apiPut(API.tasks + "/" + taskId, payload);
+            toast("T&acirc;che mise &agrave; jour", "info");
+        } else {
+            await apiPost(API.tasks + "/" + REPORT_ID, payload);
+            toast("T&acirc;che cr&eacute;e", "info");
+        }
         closeModal("modal-task");
         f.reset();
-        toast("T&acirc;che cr&eacute;&eacute;e", "info");
+        document.getElementById("task-id").value = "";
+        document.getElementById("modal-task-title").textContent = "Nouvelle t&acirc;che";
+        document.getElementById("btn-task-submit").textContent = "Cr&eacute;er";
         loadReport();
     } catch (err) { toast(err.message, "error"); }
 });
@@ -297,14 +354,15 @@ function deleteTask(id) {
 function editTask(id) {
     const t = _report.tasks.find(x => x.id === id);
     if (!t) return;
-    const desc = prompt("Description :", t.description);
-    if (desc === null) return;
-    const status = prompt("Statut (todo/done) :", t.status);
-    if (status === null) return;
-    apiPut(API.tasks + "/" + id, { description: desc, status }).then(() => {
-        toast("T&acirc;che mise &agrave; jour", "info");
-        loadReport();
-    }).catch(err => toast(err.message, "error"));
+    const f = document.getElementById("form-task");
+    f.description.value = t.description;
+    f.estimated_cost.value = t.estimated_cost || "";
+    f.estimated_duration.value = t.estimated_duration || "";
+    f.status.value = t.status;
+    document.getElementById("task-id").value = t.id;
+    document.getElementById("modal-task-title").textContent = "Modifier la t&acirc;che";
+    document.getElementById("btn-task-submit").textContent = "Enregistrer";
+    openModal("modal-task");
 }
 
 loadReport();
