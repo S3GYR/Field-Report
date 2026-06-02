@@ -25,7 +25,11 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_router, prefix=settings.api_prefix)
-    app.mount("/static", StaticFiles(directory=str(settings.storage_root.parent / "app" / "static")), name="static")
+    app.mount(
+        "/static",
+        StaticFiles(directory=str(settings.storage_root.parent / "app" / "static")),
+        name="static",
+    )
     app.mount("/exports", StaticFiles(directory=settings.exports_root), name="exports")
     app.mount("/storage", StaticFiles(directory=settings.storage_root), name="storage")
 
@@ -43,7 +47,9 @@ def create_app() -> FastAPI:
 
     @app.get("/reports/{report_id}", tags=["ui"])
     def page_report_detail(request: Request, report_id: int):
-        return templates.TemplateResponse("report_detail.html", {"request": request, "report_id": report_id})
+        return templates.TemplateResponse(
+            "report_detail.html", {"request": request, "report_id": report_id}
+        )
 
     @app.get("/photos", tags=["ui"])
     def page_photos(request: Request):

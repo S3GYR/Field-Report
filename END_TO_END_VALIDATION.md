@@ -20,15 +20,15 @@ Base URL : http://localhost:8200
 | Add photo | PASS | HTTP 201, id=1 |
 | Add task | PASS | HTTP 201, id=1 |
 | Add signature | PASS | HTTP 201, id=1 |
-| Generate PDF | PASS | HTTP 201, pdf=storage\exports\report-E2E-1780310400.pdf |
+| Generate PDF | PASS | HTTP 201, pdf=storage\exports\report-E2E-1780364759.pdf |
 | Verify PDF content | PASS | PDF valid=True, size=2.4KB, api_photo=True, api_task=True, api_sig=True |
 
 **Total** : 6 PASS / 0 FAIL
 
 ## Preuve
 
-- Rapport cr&eacute;&eacute; : id=1, number=E2E-1780310400
+- Rapport cr&eacute;&eacute; : id=1, number=E2E-1780364759
 - Photo ajout&eacute;e : id=1
 - T&acirc;che ajout&eacute;e : id=1
 - Signature ajout&eacute;e : id=1
-- PDF g&eacute;n&eacute;r&eacute; : storage\exports\report-E2E-1780310400.pdf
+- PDF g&eacute;n&eacute;r&eacute; : storage\exports\report-E2E-1780364759.pdf

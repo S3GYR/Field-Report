@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models import Photo, Report, Signature, Task
+from app.models import Report
 from app.schemas import CreateReport, ReportResponse, UpdateReport
 from app.services.pdf_service import report_pdf_service
 

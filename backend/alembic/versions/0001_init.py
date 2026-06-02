@@ -1,14 +1,14 @@
 """Initial schema
 
 Revision ID: 0001_init
-Revises: 
+Revises:
 Create Date: 2026-05-30 22:02:00.000000
 """
+
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "0001_init"
 down_revision = None
@@ -36,7 +36,12 @@ def upgrade() -> None:
     op.create_table(
         "photos",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("report_id", sa.Integer(), sa.ForeignKey("reports.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "report_id",
+            sa.Integer(),
+            sa.ForeignKey("reports.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("filename", sa.String(length=255), nullable=False),
         sa.Column("filepath", sa.String(length=500), nullable=False),
         sa.Column("gps_lat", sa.Float(), nullable=True),
@@ -49,8 +54,15 @@ def upgrade() -> None:
     op.create_table(
         "tasks",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("report_id", sa.Integer(), sa.ForeignKey("reports.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("photo_id", sa.Integer(), sa.ForeignKey("photos.id", ondelete="SET NULL"), nullable=True),
+        sa.Column(
+            "report_id",
+            sa.Integer(),
+            sa.ForeignKey("reports.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "photo_id", sa.Integer(), sa.ForeignKey("photos.id", ondelete="SET NULL"), nullable=True
+        ),
         sa.Column("description", sa.Text(), nullable=False),
         sa.Column("status", sa.String(length=20), nullable=False),
         sa.Column("estimated_cost", sa.Numeric(12, 2), nullable=True),
@@ -63,7 +75,13 @@ def upgrade() -> None:
     op.create_table(
         "signatures",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("report_id", sa.Integer(), sa.ForeignKey("reports.id", ondelete="CASCADE"), nullable=False, unique=True),
+        sa.Column(
+            "report_id",
+            sa.Integer(),
+            sa.ForeignKey("reports.id", ondelete="CASCADE"),
+            nullable=False,
+            unique=True,
+        ),
         sa.Column("name", sa.String(length=120), nullable=False),
         sa.Column("role", sa.String(length=120), nullable=True),
         sa.Column("signed_on", sa.Date(), nullable=True),

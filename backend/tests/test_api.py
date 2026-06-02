@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
-
-import pytest
 
 if TYPE_CHECKING:
     from fastapi.testclient import TestClient
@@ -85,7 +82,9 @@ class TestPhotosCrud:
     def test_get_photo(self, client: TestClient) -> None:
         report_id = _create_report(client)
         with SAMPLE_IMAGE.open("rb") as f:
-            upload = client.post(f"/api/photos/{report_id}", files={"file": ("sample.jpg", f, "image/jpeg")})
+            upload = client.post(
+                f"/api/photos/{report_id}", files={"file": ("sample.jpg", f, "image/jpeg")}
+            )
         photo_id = upload.json()["id"]
         resp = client.get(f"/api/photos/{photo_id}")
         assert resp.status_code == 200
@@ -94,9 +93,13 @@ class TestPhotosCrud:
     def test_update_photo(self, client: TestClient) -> None:
         report_id = _create_report(client)
         with SAMPLE_IMAGE.open("rb") as f:
-            upload = client.post(f"/api/photos/{report_id}", files={"file": ("sample.jpg", f, "image/jpeg")})
+            upload = client.post(
+                f"/api/photos/{report_id}", files={"file": ("sample.jpg", f, "image/jpeg")}
+            )
         photo_id = upload.json()["id"]
-        resp = client.put(f"/api/photos/{photo_id}", json={"comment": "Updated comment", "priority": "high"})
+        resp = client.put(
+            f"/api/photos/{photo_id}", json={"comment": "Updated comment", "priority": "high"}
+        )
         assert resp.status_code == 200
         assert resp.json()["comment"] == "Updated comment"
         assert resp.json()["priority"] == "high"
@@ -104,7 +107,9 @@ class TestPhotosCrud:
     def test_delete_photo(self, client: TestClient) -> None:
         report_id = _create_report(client)
         with SAMPLE_IMAGE.open("rb") as f:
-            upload = client.post(f"/api/photos/{report_id}", files={"file": ("sample.jpg", f, "image/jpeg")})
+            upload = client.post(
+                f"/api/photos/{report_id}", files={"file": ("sample.jpg", f, "image/jpeg")}
+            )
         photo_id = upload.json()["id"]
         resp = client.delete(f"/api/photos/{photo_id}")
         assert resp.status_code == 204
@@ -116,7 +121,12 @@ class TestTasksCrud:
         report_id = _create_report(client)
         resp = client.post(
             f"/api/tasks/{report_id}",
-            json={"description": "Fix leak", "status": "todo", "estimated_cost": 120.50, "estimated_duration": 2.0},
+            json={
+                "description": "Fix leak",
+                "status": "todo",
+                "estimated_cost": 120.50,
+                "estimated_duration": 2.0,
+            },
         )
         assert resp.status_code == 201
         assert resp.json()["description"] == "Fix leak"
@@ -158,7 +168,12 @@ class TestSignaturesCrud:
         report_id = _create_report(client)
         resp = client.post(
             f"/api/signatures/{report_id}",
-            json={"name": "Alice", "role": "Inspector", "signed_on": "2024-06-01", "signature_image": "base64..."},
+            json={
+                "name": "Alice",
+                "role": "Inspector",
+                "signed_on": "2024-06-01",
+                "signature_image": "base64...",
+            },
         )
         assert resp.status_code == 201
         assert resp.json()["name"] == "Alice"

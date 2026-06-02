@@ -26,7 +26,7 @@ Base URL : http://localhost:8200
 | Signature update | PASS | HTTP 200, name=Alice D. |
 | Signature delete | PASS | HTTP 204 |
 | PDF report create | PASS | HTTP 201, id=2 |
-| PDF generate | PASS | HTTP 201, pdf=storage\exports\report-VAL-PDF-1780310172.pdf |
+| PDF generate | PASS | HTTP 201, pdf=storage\exports\report-VAL-PDF-1780364860.pdf |
 | PDF accessible | PASS | HTTP 200, valid PDF header=True |
 | Cleanup seed report | PASS | HTTP 204 |
 
